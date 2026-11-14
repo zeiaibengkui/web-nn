@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Only the default local Senko Live2D model is versioned.
+.l2d-models-upstream-git/
+public/l2d-models/*
+!public/l2d-models/models/
+public/l2d-models/models/*
+!public/l2d-models/models/Senko_Normals/
