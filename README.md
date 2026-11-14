@@ -212,6 +212,8 @@ VITE_LIVE2D_MODEL_URL=https://example.com/your-model/model.model3.json
 
 模型中的所有相对资源必须能通过浏览器访问，并且服务器需要允许 CORS。请确保你拥有所用 Live2D 模型的授权。Cubism 4 Core 通过 `index.html` 中的官方脚本加载。
 
+相关参考项目：[live2d-face-release](https://zkcpku.github.io/live2d-face-release/)
+
 ## 模型与性能配置
 
 相关地址定义在 `src/hooks/useFaceMesh.ts`：
