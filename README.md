@@ -198,7 +198,7 @@ ParamBrowLY / ParamBrowRY
 
 输入关键点会先复制一份再交给 Kalidokit，避免解算时对原始 FaceMesh 数据做单位转换。头部、眼睛和嘴型参数通过逐帧插值降低抖动，模型自带的呼吸、物理和待机动作仍然保留。
 
-页面默认加载 `pixi-live2d-display` 测试资源中的 Haru Cubism 4 模型。部署自己的模型时，设置模型设置文件 URL：
+页面默认加载 [Senko_Normals](https://model.hacxy.cn/Senko_Normals/senko.model3.json) Cubism 4 模型。部署自己的模型时，设置模型设置文件 URL：
 
 ```bash
 VITE_LIVE2D_MODEL_URL="https://example.com/your-model/model.model3.json" pnpm dev
