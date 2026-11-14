@@ -218,6 +218,15 @@ https://zeiaibengkui.github.io/web-nn/?model_url=https%3A%2F%2Fexample.com%2Fyou
 
 `model_url` 支持外部 HTTP(S) 地址和站内相对路径，例如 `/l2d-models/models/Hiyori/Hiyori.model3.json`。建议先对含特殊字符的 URL 使用 `encodeURIComponent`。非 HTTP(S) 地址会自动回退到默认模型。
 
+使用 `model_name` 可以直接选择仓库内打包的 Cubism 4 模型：
+
+```text
+https://zeiaibengkui.github.io/web-nn/?model_name=hiyori
+https://zeiaibengkui.github.io/web-nn/?embed=1&model_name=haru
+```
+
+可用值：`senko`、`haru`、`hiyori`、`mao`、`mark`、`natori`、`ren`、`rice`、`wanko`、`abeikelongbi_3`。大小写不敏感，也支持 `senko_normals` 作为 Senko 的别名。若同时提供 `model_url` 和 `model_name`，优先使用 `model_url`；未知名称会回退到 Senko。
+
 模型中的所有相对资源必须能通过浏览器访问，并且服务器需要允许 CORS。请确保你拥有所用 Live2D 模型的授权。Cubism 4 Core 通过 `index.html` 中的官方脚本加载。
 
 相关参考项目：[live2d-face-release](https://zkcpku.github.io/live2d-face-release/)

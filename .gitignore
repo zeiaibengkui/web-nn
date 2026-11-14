@@ -23,9 +23,19 @@ dist-ssr
 *.sln
 *.sw?
 
-# Only the default local Senko Live2D model is versioned.
+# Keep the upstream Git metadata out while versioning the bundled models.
 .l2d-models-upstream-git/
 public/l2d-models/*
 !public/l2d-models/models/
 public/l2d-models/models/*
+!public/l2d-models/models/Haru/
+!public/l2d-models/models/Hiyori/
+!public/l2d-models/models/Mao/
+!public/l2d-models/models/Mark/
+!public/l2d-models/models/Natori/
+!public/l2d-models/models/Ren/
+!public/l2d-models/models/Rice/
 !public/l2d-models/models/Senko_Normals/
+!public/l2d-models/models/Wanko/
+!public/l2d-models/models/abeikelongbi_3/
+!public/l2d-models/README.md
