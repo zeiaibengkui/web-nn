@@ -89,7 +89,9 @@ pnpm desktop:dir
 pnpm desktop:build
 ```
 
-`desktop:dir` 输出到 `release/linux-unpacked`，`desktop:build` 会生成 AppImage 和 deb。Linux 默认让 Chromium 自动选择 Wayland/X11。若当前桌面环境的透明合成不工作，可以尝试：
+`desktop:dir` 输出到 `release/linux-unpacked`，`desktop:build` 会生成 AppImage。需要 deb 时运行 `pnpm desktop:deb`；electron-builder 的 deb 打包器还要求系统提供 `libcrypt.so.1`。
+
+Linux 默认让 Chromium 自动选择 Wayland/X11。若当前桌面环境的透明合成不工作，可以尝试：
 
 ```bash
 BLINKLINE_OZONE_PLATFORM=x11 pnpm desktop:dev
