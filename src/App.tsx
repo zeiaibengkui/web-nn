@@ -37,11 +37,17 @@ const CAMERA_ERRORS: Record<string, string> = {
 
 interface AppProps {
   isEmbedMode: boolean
+  isDesktopMode: boolean
   mode: ColorMode
   onToggleColorMode: () => void
 }
 
-function App({ isEmbedMode, mode, onToggleColorMode }: AppProps) {
+function App({
+  isEmbedMode,
+  isDesktopMode,
+  mode,
+  onToggleColorMode,
+}: AppProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -309,6 +315,13 @@ function App({ isEmbedMode, mode, onToggleColorMode }: AppProps) {
           height: '100vh',
           overflow: 'hidden',
           bgcolor: 'transparent',
+          ...(isDesktopMode
+            ? {
+                WebkitAppRegion: 'drag',
+                cursor: 'grab',
+                userSelect: 'none',
+              }
+            : {}),
         }}
         onPointerDown={() => {
           if (cameraStatus === 'error') void startCamera()

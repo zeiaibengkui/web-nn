@@ -21,10 +21,14 @@ const getInitialMode = (): ColorMode => {
 
 export function AppRoot() {
   const [mode, setMode] = useState<ColorMode>(getInitialMode)
-  const [isEmbedMode] = useState(
-    () =>
-      new URLSearchParams(window.location.search).get('embed') === '1',
-  )
+  const [urlModes] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return {
+      isEmbedMode: params.get('embed') === '1',
+      isDesktopMode: params.get('desktop') === '1',
+    }
+  })
+  const { isEmbedMode, isDesktopMode } = urlModes
   const theme = createAppTheme(mode)
 
   useEffect(() => {
@@ -65,6 +69,7 @@ export function AppRoot() {
       <CssBaseline />
       <App
         isEmbedMode={isEmbedMode}
+        isDesktopMode={isDesktopMode}
         mode={mode}
         onToggleColorMode={() =>
           setMode((currentMode) =>

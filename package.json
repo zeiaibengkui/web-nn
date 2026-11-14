@@ -3,11 +3,17 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.mjs",
+  "description": "Local FaceMesh blink detection and Live2D avatar for web and Linux desktop.",
+  "author": "zeiaibengkui",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "desktop:dev": "concurrently --kill-others --success first \"vite --host 127.0.0.1 --port 5175 --strictPort\" \"wait-on tcp:127.0.0.1:5175 && cross-env ELECTRON_RENDERER_URL=http://127.0.0.1:5175/ electron .\"",
+    "desktop:dir": "pnpm build && electron-builder --linux dir",
+    "desktop:build": "pnpm build && electron-builder --linux AppImage deb"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -32,8 +38,35 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "babel-plugin-react-compiler": "^1.0.0",
+    "concurrently": "10.0.7",
+    "cross-env": "10.1.0",
+    "electron": "45.3.2",
+    "electron-builder": "26.18.0",
     "oxlint": "^1.90.0",
     "typescript": "~7.0.2",
-    "vite": "^8.3.6"
+    "vite": "^8.3.6",
+    "wait-on": "9.5.1"
+  },
+  "build": {
+    "appId": "io.github.zeiaibengkui.blinkline",
+    "productName": "Blinkline",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json",
+      "!node_modules/**/*"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "executableName": "blinkline",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    }
   }
 }

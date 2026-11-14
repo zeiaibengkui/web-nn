@@ -72,6 +72,41 @@ https://zeiaibengkui.github.io/web-nn/?embed=1
 
 宿主页面和 iframe 背景都应保持透明。摄像头权限被拒绝时，在 iframe 内点击一次会在错误状态后重试权限请求。
 
+## Linux 桌面应用
+
+项目同时包含 Web 和 Electron 运行方式，共用 `src`、`public` 和 Live2D 模型资源。Linux 桌面版默认打开一个透明、无边框、始终置顶的 `?embed=1&desktop=1` 窗口。
+
+开发模式：
+
+```bash
+pnpm desktop:dev
+```
+
+构建未打包目录和 Linux 安装包：
+
+```bash
+pnpm desktop:dir
+pnpm desktop:build
+```
+
+`desktop:dir` 输出到 `release/linux-unpacked`，`desktop:build` 会生成 AppImage 和 deb。Linux 默认让 Chromium 自动选择 Wayland/X11。若当前桌面环境的透明合成不工作，可以尝试：
+
+```bash
+BLINKLINE_OZONE_PLATFORM=x11 pnpm desktop:dev
+```
+
+不建议默认强制 X11；部分 Wayland 环境中的 XWayland 会导致 GPU/WebGL 初始化不稳定。
+
+桌面窗口支持：
+
+- 拖动透明区域移动窗口
+- 右键菜单切换点击穿透、置顶或退出
+- `Ctrl+Shift+X` 切换点击穿透
+- `Ctrl+Shift+A` 切换始终置顶
+- 自动允许本地应用页面使用摄像头
+
+点击穿透开启后，需要再次按 `Ctrl+Shift+X` 恢复窗口交互。
+
 ## 摄像头要求
 
 浏览器只允许在安全上下文中访问摄像头：
