@@ -50,6 +50,28 @@ https://<github-username>.github.io/web-nn/
 
 Pages 的构建来源需要设置为 **GitHub Actions**。摄像头权限要求页面通过 HTTPS 访问，GitHub Pages 默认满足这一条件。
 
+## Iframe 嵌入模式
+
+在 URL 后添加 `?embed=1` 可以进入纯 Live2D 模式：
+
+```text
+https://zeiaibengkui.github.io/web-nn/?embed=1
+```
+
+该模式只渲染透明的 Live2D 画布，不显示标题、摄像头、统计面板或控制按钮。FaceMesh 仍会在隐藏的视频元素上运行，并在模型加载完成后自动申请摄像头权限。
+
+跨域 iframe 必须显式允许摄像头：
+
+```html
+<iframe
+  src="https://zeiaibengkui.github.io/web-nn/?embed=1"
+  allow="camera"
+  style="border: 0; width: 640px; height: 640px; background: transparent"
+></iframe>
+```
+
+宿主页面和 iframe 背景都应保持透明。摄像头权限被拒绝时，在 iframe 内点击一次会在错误状态后重试权限请求。
+
 ## 摄像头要求
 
 浏览器只允许在安全上下文中访问摄像头：

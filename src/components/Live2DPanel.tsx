@@ -25,6 +25,7 @@ interface Live2DPanelProps {
   modelReady: boolean
   faceDetected: boolean
   driversRef: React.RefObject<Live2DDrivers | null>
+  embedded?: boolean
 }
 
 interface CubismCoreModel {
@@ -46,6 +47,7 @@ export function Live2DPanel({
   modelReady,
   faceDetected,
   driversRef,
+  embedded = false,
 }: Live2DPanelProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading')
@@ -109,7 +111,7 @@ export function Live2DPanel({
             width / Math.max(1, naturalWidth),
             height / Math.max(1, naturalHeight),
           )
-          model.scale.set(scale * 0.92)
+          model.scale.set(scale * (embedded ? 1 : 0.92))
           model.position.set(width / 2, height / 2)
         }
 
@@ -211,7 +213,7 @@ export function Live2DPanel({
       app = null
       host.replaceChildren()
     }
-  }, [attempt, driversRef])
+  }, [attempt, driversRef, embedded])
 
   const isDriving =
     loadStatus === 'ready' &&
@@ -227,6 +229,35 @@ export function Live2DPanel({
         : isDriving
           ? '实时驱动'
           : '等待人脸'
+
+  if (embedded) {
+    return (
+      <Box
+        sx={{
+          position: 'fixed',
+          inset: 0,
+          width: '100vw',
+          height: '100vh',
+          overflow: 'hidden',
+          bgcolor: 'transparent',
+        }}
+      >
+        <Box
+          ref={hostRef}
+          aria-label="Live2D 虚拟形象"
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            bgcolor: 'transparent',
+            '& canvas': {
+              display: 'block',
+              background: 'transparent',
+            },
+          }}
+        />
+      </Box>
+    )
+  }
 
   return (
     <Paper

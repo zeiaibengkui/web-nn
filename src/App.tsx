@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Box, Container, Divider, Stack, Typography } from '@mui/material'
 import type { FaceLandmarkerResult } from '@mediapipe/tasks-vision'
 import { Face } from 'kalidokit'
@@ -31,11 +31,12 @@ const CAMERA_ERRORS: Record<string, string> = {
 }
 
 interface AppProps {
+  isEmbedMode: boolean
   mode: ColorMode
   onToggleColorMode: () => void
 }
 
-function App({ mode, onToggleColorMode }: AppProps) {
+function App({ isEmbedMode, mode, onToggleColorMode }: AppProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -156,7 +157,7 @@ function App({ mode, onToggleColorMode }: AppProps) {
     lastUiUpdateRef.current = 0
   }
 
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     if (cameraStatus === 'requesting' || modelStatus !== 'ready') return
 
     setCameraStatus('requesting')
@@ -229,7 +230,23 @@ function App({ mode, onToggleColorMode }: AppProps) {
       setReadout(EMPTY_EYE_READOUT)
       live2dDriversRef.current = null
     }
-  }
+  }, [cameraStatus, modelStatus])
+
+  useEffect(() => {
+    if (
+      !isEmbedMode ||
+      modelStatus !== 'ready' ||
+      cameraStatus !== 'idle'
+    ) {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      void startCamera()
+    }, 200)
+
+    return () => window.clearTimeout(timer)
+  }, [cameraStatus, isEmbedMode, modelStatus, startCamera])
 
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop())
@@ -261,6 +278,55 @@ function App({ mode, onToggleColorMode }: AppProps) {
     elapsedSeconds >= 5
       ? `${((blinkCount / elapsedSeconds) * 60).toFixed(1)} 次/分`
       : '采集数据中'
+
+  if (isEmbedMode) {
+    return (
+      <Box
+        sx={{
+          position: 'fixed',
+          inset: 0,
+          width: '100vw',
+          height: '100vh',
+          overflow: 'hidden',
+          bgcolor: 'transparent',
+        }}
+        onPointerDown={() => {
+          if (cameraStatus === 'error') void startCamera()
+        }}
+      >
+        <Box
+          component="video"
+          ref={videoRef}
+          muted
+          playsInline
+          autoPlay
+          aria-hidden="true"
+          sx={{
+            position: 'fixed',
+            left: -2,
+            top: -2,
+            width: 1,
+            height: 1,
+            opacity: 0,
+            pointerEvents: 'none',
+          }}
+        />
+        <Box
+          component="canvas"
+          ref={canvasRef}
+          aria-hidden="true"
+          sx={{ display: 'none' }}
+        />
+        <Live2DPanel
+          embedded
+          cameraStatus={cameraStatus}
+          modelReady={modelStatus === 'ready'}
+          faceDetected={readout.hasFace}
+          driversRef={live2dDriversRef}
+        />
+      </Box>
+    )
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>

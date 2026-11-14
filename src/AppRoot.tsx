@@ -21,7 +21,31 @@ const getInitialMode = (): ColorMode => {
 
 export function AppRoot() {
   const [mode, setMode] = useState<ColorMode>(getInitialMode)
+  const [isEmbedMode] = useState(
+    () =>
+      new URLSearchParams(window.location.search).get('embed') === '1',
+  )
   const theme = createAppTheme(mode)
+
+  useEffect(() => {
+    if (!isEmbedMode) return
+
+    const root = document.documentElement
+    const body = document.body
+    const previousRootBackground = root.style.backgroundColor
+    const previousBodyBackground = body.style.backgroundColor
+    const previousBodyOverflow = body.style.overflow
+
+    root.style.backgroundColor = 'transparent'
+    body.style.backgroundColor = 'transparent'
+    body.style.overflow = 'hidden'
+
+    return () => {
+      root.style.backgroundColor = previousRootBackground
+      body.style.backgroundColor = previousBodyBackground
+      body.style.overflow = previousBodyOverflow
+    }
+  }, [isEmbedMode])
 
   useEffect(() => {
     try {
@@ -40,6 +64,7 @@ export function AppRoot() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <App
+        isEmbedMode={isEmbedMode}
         mode={mode}
         onToggleColorMode={() =>
           setMode((currentMode) =>
