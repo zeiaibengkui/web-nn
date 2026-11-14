@@ -26,6 +26,19 @@ export const BUNDLED_MODEL_NAMES = [
   'abeikelongbi_3',
 ] as const
 
+export const BUNDLED_MODEL_OPTIONS = [
+  { name: 'senko', label: 'Senko' },
+  { name: 'haru', label: 'Haru' },
+  { name: 'hiyori', label: 'Hiyori' },
+  { name: 'mao', label: 'Mao' },
+  { name: 'mark', label: 'Mark' },
+  { name: 'natori', label: 'Natori' },
+  { name: 'ren', label: 'Ren' },
+  { name: 'rice', label: 'Rice' },
+  { name: 'wanko', label: 'Wanko' },
+  { name: 'abeikelongbi_3', label: 'Abeikelongbi' },
+] as const
+
 export const DEFAULT_LIVE2D_MODEL_URL =
   `${import.meta.env.BASE_URL}${BUNDLED_MODEL_PATHS.senko}`
 
@@ -68,3 +81,43 @@ export const getLive2DModelUrl = () =>
       ? `${import.meta.env.BASE_URL}${bundledPath}`
       : FALLBACK_MODEL_URL
   })()
+
+export interface Live2DModelSelection {
+  modelName: string
+  modelUrl: string
+  isCustom: boolean
+}
+
+export const getBundledLive2DModelUrl = (modelName: string) => {
+  const bundledPath = BUNDLED_MODEL_PATHS[modelName.trim().toLowerCase()]
+  return bundledPath
+    ? `${import.meta.env.BASE_URL}${bundledPath}`
+    : DEFAULT_LIVE2D_MODEL_URL
+}
+
+export const getInitialLive2DModelSelection = (): Live2DModelSelection => {
+  const params = new URLSearchParams(window.location.search)
+  const requestedUrl = params.get('model_url')
+
+  if (requestedUrl) {
+    return {
+      modelName: 'custom',
+      modelUrl: resolveLive2DModelUrl(requestedUrl),
+      isCustom: true,
+    }
+  }
+
+  const requestedName = params.get('model_name')?.trim().toLowerCase()
+  const option = BUNDLED_MODEL_OPTIONS.find(
+    (candidate) =>
+      candidate.name === requestedName ||
+      (requestedName === 'senko_normals' && candidate.name === 'senko'),
+  )
+  const modelName = option?.name ?? 'senko'
+
+  return {
+    modelName,
+    modelUrl: getBundledLive2DModelUrl(modelName),
+    isCustom: false,
+  }
+}

@@ -4,7 +4,11 @@ import {
   Button,
   Chip,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Typography,
 } from '@mui/material'
@@ -13,7 +17,7 @@ import {
   FaceRetouchingNaturalRounded,
   ViewInArRounded,
 } from '@mui/icons-material'
-import { getLive2DModelUrl } from '../config/live2d'
+import { BUNDLED_MODEL_OPTIONS } from '../config/live2d'
 import {
   NEUTRAL_DRIVERS,
   type Live2DDrivers,
@@ -21,11 +25,15 @@ import {
 import type { CameraStatus } from '../types'
 
 interface Live2DPanelProps {
+  modelUrl: string
+  selectedModel?: string
+  isCustomModel?: boolean
   cameraStatus: CameraStatus
   modelReady: boolean
   faceDetected: boolean
   driversRef: React.RefObject<Live2DDrivers | null>
   embedded?: boolean
+  onModelChange?: (modelName: string) => void
 }
 
 interface CubismCoreModel {
@@ -43,14 +51,17 @@ const smooth = (current: number, target: number, amount: number) =>
   current + (target - current) * amount
 
 export function Live2DPanel({
+  modelUrl,
+  selectedModel = 'senko',
+  isCustomModel = false,
   cameraStatus,
   modelReady,
   faceDetected,
   driversRef,
   embedded = false,
+  onModelChange,
 }: Live2DPanelProps) {
   const hostRef = useRef<HTMLDivElement>(null)
-  const [modelUrl] = useState(getLive2DModelUrl)
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading')
   const [loadError, setLoadError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -398,6 +409,28 @@ export function Live2DPanel({
           />
         )}
       </Box>
+
+      <FormControl fullWidth size="small" sx={{ mt: 2 }}>
+        <InputLabel id="live2d-model-select-label">Live2D 模型</InputLabel>
+        <Select
+          labelId="live2d-model-select-label"
+          id="live2d-model-select"
+          value={selectedModel}
+          label="Live2D 模型"
+          onChange={(event) => onModelChange?.(event.target.value)}
+        >
+          {isCustomModel && (
+            <MenuItem value="custom" disabled>
+              自定义 URL
+            </MenuItem>
+          )}
+          {BUNDLED_MODEL_OPTIONS.map((model) => (
+            <MenuItem key={model.name} value={model.name}>
+              {model.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
       <Stack
         direction={{ xs: 'column', sm: 'row' }}

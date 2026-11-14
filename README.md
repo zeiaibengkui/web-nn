@@ -227,6 +227,8 @@ https://zeiaibengkui.github.io/web-nn/?embed=1&model_name=haru
 
 可用值：`senko`、`haru`、`hiyori`、`mao`、`mark`、`natori`、`ren`、`rice`、`wanko`、`abeikelongbi_3`。大小写不敏感，也支持 `senko_normals` 作为 Senko 的别名。若同时提供 `model_url` 和 `model_name`，优先使用 `model_url`；未知名称会回退到 Senko。
 
+非 embed 页面也可以直接在“虚拟形象”面板的模型下拉框中选择这些模型。切换后会把选择写入 `model_name` 查询参数，并立即重新加载模型。
+
 模型中的所有相对资源必须能通过浏览器访问，并且服务器需要允许 CORS。请确保你拥有所用 Live2D 模型的授权。Cubism 4 Core 通过 `index.html` 中的官方脚本加载。
 
 相关参考项目：[live2d-face-release](https://zkcpku.github.io/live2d-face-release/)

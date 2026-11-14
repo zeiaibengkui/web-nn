@@ -7,6 +7,11 @@ import { CameraPanel } from './components/CameraPanel'
 import { DetectionSettings } from './components/DetectionSettings'
 import { EyeSignals } from './components/EyeSignals'
 import { Live2DPanel } from './components/Live2DPanel'
+import {
+  getBundledLive2DModelUrl,
+  getInitialLive2DModelSelection,
+  type Live2DModelSelection,
+} from './config/live2d'
 import { useFaceMesh } from './hooks/useFaceMesh'
 import { getEyeReadout } from './lib/eyeMetrics'
 import { formatElapsed, formatLastBlink } from './lib/format'
@@ -57,6 +62,8 @@ function App({ isEmbedMode, mode, onToggleColorMode }: AppProps) {
   const [threshold, setThreshold] = useState(0.5)
   const [showMesh, setShowMesh] = useState(true)
   const [showEyeDetails, setShowEyeDetails] = useState(true)
+  const [live2dModel, setLive2DModel] =
+    useState<Live2DModelSelection>(getInitialLive2DModelSelection)
   const [clock, setClock] = useState(() => Date.now())
 
   const handleResults = (results: FaceLandmarkerResult) => {
@@ -274,6 +281,19 @@ function App({ isEmbedMode, mode, onToggleColorMode }: AppProps) {
     blinkStartedAtRef.current = null
   }
 
+  const changeLive2DModel = (modelName: string) => {
+    setLive2DModel({
+      modelName,
+      modelUrl: getBundledLive2DModelUrl(modelName),
+      isCustom: false,
+    })
+
+    const nextUrl = new URL(window.location.href)
+    nextUrl.searchParams.set('model_name', modelName)
+    nextUrl.searchParams.delete('model_url')
+    window.history.replaceState(window.history.state, '', nextUrl)
+  }
+
   const blinkRate =
     elapsedSeconds >= 5
       ? `${((blinkCount / elapsedSeconds) * 60).toFixed(1)} 次/分`
@@ -319,6 +339,7 @@ function App({ isEmbedMode, mode, onToggleColorMode }: AppProps) {
         />
         <Live2DPanel
           embedded
+          modelUrl={live2dModel.modelUrl}
           cameraStatus={cameraStatus}
           modelReady={modelStatus === 'ready'}
           faceDetected={readout.hasFace}
@@ -395,10 +416,14 @@ function App({ isEmbedMode, mode, onToggleColorMode }: AppProps) {
                 onReset={resetSession}
               />
               <Live2DPanel
+                modelUrl={live2dModel.modelUrl}
+                selectedModel={live2dModel.modelName}
+                isCustomModel={live2dModel.isCustom}
                 cameraStatus={cameraStatus}
                 modelReady={modelStatus === 'ready'}
                 faceDetected={readout.hasFace}
                 driversRef={live2dDriversRef}
+                onModelChange={changeLive2DModel}
               />
             </Stack>
 
