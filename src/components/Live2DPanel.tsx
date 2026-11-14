@@ -68,13 +68,14 @@ export function Live2DPanel({
         setLoadStatus('loading')
         setLoadError(null)
 
-        const [{ Application }, { Live2DModel }] = await Promise.all([
+        const [{ Application, Ticker }, { Live2DModel }] = await Promise.all([
           import('pixi.js'),
           import('pixi-live2d-display/cubism4'),
         ])
 
         if (disposed) return
 
+        Live2DModel.registerTicker(Ticker)
         app = new Application({
           autoDensity: true,
           antialias: true,
