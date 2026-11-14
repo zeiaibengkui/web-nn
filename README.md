@@ -40,6 +40,16 @@ pnpm build
 pnpm lint
 ```
 
+## GitHub Pages
+
+推送到 `main` 分支后，GitHub Actions 会自动构建并发布到：
+
+```text
+https://<github-username>.github.io/web-nn/
+```
+
+Pages 的构建来源需要设置为 **GitHub Actions**。摄像头权限要求页面通过 HTTPS 访问，GitHub Pages 默认满足这一条件。
+
 ## 摄像头要求
 
 浏览器只允许在安全上下文中访问摄像头：
