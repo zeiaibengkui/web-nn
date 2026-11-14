@@ -5,8 +5,19 @@ import { AppHeader } from './components/AppHeader'
 import { CameraPanel } from './components/CameraPanel'
 import { DetectionSettings } from './components/DetectionSettings'
 import { EyeSignals } from './components/EyeSignals'
+import { GazeCalibrationDialog } from './components/GazeCalibrationDialog'
+import { GazePanel } from './components/GazePanel'
 import { useFaceMesh } from './hooks/useFaceMesh'
 import { getEyeReadout } from './lib/eyeMetrics'
+import {
+  extractGazeFeature,
+  fitGazeModel,
+  predictGaze,
+  type GazeCalibrationPoint,
+  type GazeFeature,
+  type GazeModel,
+  type GazePoint,
+} from './lib/gazeEstimation'
 import { formatElapsed, formatLastBlink } from './lib/format'
 import {
   EMPTY_EYE_READOUT,
@@ -37,6 +48,10 @@ function App({ mode, onToggleColorMode }: AppProps) {
   const isBlinkingRef = useRef(false)
   const blinkStartedAtRef = useRef<number | null>(null)
   const lastUiUpdateRef = useRef(0)
+  const latestGazeFeatureRef = useRef<GazeFeature | null>(null)
+  const smoothedGazeRef = useRef<GazePoint | null>(null)
+  const lastGazeUiUpdateRef = useRef(0)
+  const hadGazePredictionRef = useRef(false)
 
   const [cameraStatus, setCameraStatus] = useState<CameraStatus>('idle')
   const [cameraError, setCameraError] = useState<string | null>(null)
@@ -49,11 +64,18 @@ function App({ mode, onToggleColorMode }: AppProps) {
   const [threshold, setThreshold] = useState(0.5)
   const [showMesh, setShowMesh] = useState(true)
   const [showEyeDetails, setShowEyeDetails] = useState(true)
+  const [gazeModel, setGazeModel] = useState<GazeModel | null>(null)
+  const [gazePoint, setGazePoint] = useState<GazePoint | null>(null)
+  const [calibrationOpen, setCalibrationOpen] = useState(false)
+  const [showGazeCursor, setShowGazeCursor] = useState(false)
   const [clock, setClock] = useState(() => Date.now())
 
   const handleResults = (results: FaceLandmarkerResult) => {
     const now = performance.now()
     const nextReadout = getEyeReadout(results, method, threshold)
+    const gazeFeature = extractGazeFeature(results)
+    latestGazeFeatureRef.current =
+      nextReadout.hasFace && !nextReadout.isClosed ? gazeFeature : null
 
     if (!nextReadout.hasFace) {
       isBlinkingRef.current = false
@@ -79,6 +101,35 @@ function App({ mode, onToggleColorMode }: AppProps) {
     if (!nextReadout.hasFace || now - lastUiUpdateRef.current >= 75) {
       lastUiUpdateRef.current = now
       setReadout(nextReadout)
+    }
+
+    const canEstimateGaze =
+      Boolean(gazeFeature) &&
+      Boolean(gazeModel) &&
+      nextReadout.hasFace &&
+      !nextReadout.isClosed
+
+    if (canEstimateGaze && gazeFeature && gazeModel) {
+      const rawGaze = predictGaze(gazeModel, gazeFeature)
+      const previousGaze = smoothedGazeRef.current
+      const nextGaze = previousGaze
+        ? {
+            x: previousGaze.x * 0.78 + rawGaze.x * 0.22,
+            y: previousGaze.y * 0.78 + rawGaze.y * 0.22,
+          }
+        : rawGaze
+
+      smoothedGazeRef.current = nextGaze
+      hadGazePredictionRef.current = true
+
+      if (now - lastGazeUiUpdateRef.current >= 75) {
+        lastGazeUiUpdateRef.current = now
+        setGazePoint(nextGaze)
+      }
+    } else if (hadGazePredictionRef.current) {
+      hadGazePredictionRef.current = false
+      smoothedGazeRef.current = null
+      setGazePoint(null)
     }
   }
 
@@ -129,6 +180,41 @@ function App({ mode, onToggleColorMode }: AppProps) {
     lastUiUpdateRef.current = 0
   }
 
+  const startCalibration = () => {
+    if (cameraStatus !== 'active' || modelStatus !== 'ready') return
+    setGazePoint(null)
+    setShowGazeCursor(false)
+    smoothedGazeRef.current = null
+    lastGazeUiUpdateRef.current = 0
+    hadGazePredictionRef.current = false
+    setCalibrationOpen(true)
+  }
+
+  const completeCalibration = (points: GazeCalibrationPoint[]) => {
+    const model = fitGazeModel(points)
+
+    if (!model) {
+      return '有效样本不足。请保持正脸、双眼可见，并在每个圆点出现时稳定注视。'
+    }
+
+    setGazeModel(model)
+    setGazePoint(null)
+    setShowGazeCursor(true)
+    smoothedGazeRef.current = null
+    lastGazeUiUpdateRef.current = 0
+    hadGazePredictionRef.current = false
+    return null
+  }
+
+  const clearCalibration = () => {
+    setGazeModel(null)
+    setGazePoint(null)
+    setShowGazeCursor(false)
+    smoothedGazeRef.current = null
+    lastGazeUiUpdateRef.current = 0
+    hadGazePredictionRef.current = false
+  }
+
   const startCamera = async () => {
     if (cameraStatus === 'requesting' || modelStatus !== 'ready') return
 
@@ -174,6 +260,7 @@ function App({ mode, onToggleColorMode }: AppProps) {
           setCameraStatus('error')
           setCameraError('摄像头连接已断开，请重新开启。')
           setReadout(EMPTY_EYE_READOUT)
+          latestGazeFeatureRef.current = null
         },
         { once: true },
       )
@@ -183,6 +270,7 @@ function App({ mode, onToggleColorMode }: AppProps) {
       setElapsedSeconds(0)
       setStartedAt(Date.now())
       setReadout(EMPTY_EYE_READOUT)
+      latestGazeFeatureRef.current = null
       lastUiUpdateRef.current = 0
       setCameraStatus('active')
     } catch (error) {
@@ -198,6 +286,7 @@ function App({ mode, onToggleColorMode }: AppProps) {
       setCameraStatus('error')
       setCameraError(cameraFailure)
       setReadout(EMPTY_EYE_READOUT)
+    latestGazeFeatureRef.current = null
     }
   }
 
@@ -215,6 +304,10 @@ function App({ mode, onToggleColorMode }: AppProps) {
     setCameraStatus('idle')
     setCameraError(null)
     setReadout(EMPTY_EYE_READOUT)
+    latestGazeFeatureRef.current = null
+    setGazePoint(null)
+    hadGazePredictionRef.current = false
+    smoothedGazeRef.current = null
     setStartedAt(null)
     setElapsedSeconds(0)
   }
@@ -281,21 +374,34 @@ function App({ mode, onToggleColorMode }: AppProps) {
               gap: { xs: 2.5, sm: 3 },
             }}
           >
-            <CameraPanel
-              videoRef={videoRef}
-              canvasRef={canvasRef}
-              cameraStatus={cameraStatus}
-              modelStatus={modelStatus}
-              modelError={modelError}
-              cameraError={cameraError}
-              hasFace={readout.hasFace}
-              fps={fps}
-              showMesh={showMesh}
-              onToggleMesh={() => setShowMesh((value) => !value)}
-              onStart={() => void startCamera()}
-              onStop={stopCamera}
-              onReset={resetSession}
-            />
+            <Stack spacing={{ xs: 2.5, sm: 3 }}>
+              <CameraPanel
+                videoRef={videoRef}
+                canvasRef={canvasRef}
+                cameraStatus={cameraStatus}
+                modelStatus={modelStatus}
+                modelError={modelError}
+                cameraError={cameraError}
+                hasFace={readout.hasFace}
+                fps={fps}
+                showMesh={showMesh}
+                onToggleMesh={() => setShowMesh((value) => !value)}
+                onStart={() => void startCamera()}
+                onStop={stopCamera}
+                onReset={resetSession}
+              />
+              <GazePanel
+                cameraStatus={cameraStatus}
+                modelReady={modelStatus === 'ready'}
+                isCalibrated={Boolean(gazeModel)}
+                gazePoint={gazePoint}
+                showCursor={showGazeCursor}
+                colorMode={mode}
+                onStartCalibration={startCalibration}
+                onClearCalibration={clearCalibration}
+                onToggleCursor={setShowGazeCursor}
+              />
+            </Stack>
 
             <Box
               sx={{
@@ -351,6 +457,38 @@ function App({ mode, onToggleColorMode }: AppProps) {
           </Stack>
         </Box>
       </Container>
+
+      <GazeCalibrationDialog
+        open={calibrationOpen}
+        latestFeatureRef={latestGazeFeatureRef}
+        onComplete={completeCalibration}
+        onClose={() => setCalibrationOpen(false)}
+      />
+
+      {showGazeCursor &&
+        gazePoint &&
+        cameraStatus === 'active' &&
+        !calibrationOpen && (
+          <Box
+            aria-hidden="true"
+            sx={{
+              position: 'fixed',
+              left: `${gazePoint.x * 100}%`,
+              top: `${gazePoint.y * 100}%`,
+              width: 16,
+              height: 16,
+              transform: 'translate(-50%, -50%)',
+              borderRadius: '50%',
+              bgcolor: 'secondary.main',
+              border: 2,
+              borderColor: 'secondary.contrastText',
+              boxShadow: 4,
+              pointerEvents: 'none',
+              zIndex: 'tooltip',
+              transition: 'left 70ms linear, top 70ms linear',
+            }}
+          />
+        )}
     </Box>
   )
 }
