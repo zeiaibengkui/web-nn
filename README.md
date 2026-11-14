@@ -214,6 +214,8 @@ VITE_LIVE2D_MODEL_URL=https://example.com/your-model/model.model3.json
 
 相关参考项目：[live2d-face-release](https://zkcpku.github.io/live2d-face-release/)
 
+[hacxy/l2d-widget](https://github.com/hacxy/l2d-widget)
+
 ## 模型与性能配置
 
 相关地址定义在 `src/hooks/useFaceMesh.ts`：
