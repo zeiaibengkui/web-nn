@@ -12,6 +12,7 @@
 - 摄像头、模型和权限错误的界面状态反馈
 - 摄像头流、动画帧和 WASM 资源的完整清理
 - 自动跟随系统偏好、可手动切换并持久保存的浅色/深色主题
+- FaceMesh → Kalidokit → Live2D 的实时头部、眼睛、嘴型和眉毛驱动
 
 界面完全使用 MUI 组件、主题与 `sx` 构建，没有自定义 CSS 文件。
 
@@ -68,12 +69,16 @@ src/
 │   ├── AppHeader.tsx          # 页面品牌与隐私状态
 │   ├── CameraPanel.tsx        # 视频、Canvas、摄像头状态和绘制开关
 │   ├── DetectionSettings.tsx  # 检测方式、阈值和显示设置
-│   └── EyeSignals.tsx         # 眨眼次数、双眼开合度和会话指标
+│   ├── EyeSignals.tsx         # 眨眼次数、双眼开合度和会话指标
+│   └── Live2DPanel.tsx        # Pixi/Cubism 渲染与 Live2D 参数写入
 ├── hooks/
 │   └── useFaceMesh.ts         # 模型生命周期、帧循环和 Canvas 绘制
 ├── lib/
 │   ├── eyeMetrics.ts          # Blendshape、EAR 与开合度计算
+│   ├── live2dMapping.ts       # Kalidokit 结果到 Live2D 参数的映射
 │   └── format.ts              # 会话时间格式化
+├── config/
+│   └── live2d.ts               # 默认模型和 VITE_LIVE2D_MODEL_URL
 ├── App.tsx                    # 摄像头、眨眼状态机和页面组合
 ├── main.tsx                   # MUI ThemeProvider 与 CssBaseline
 ├── theme.ts                   # 颜色、字体、圆角和组件默认样式
@@ -150,6 +155,41 @@ EAR = (|p2 - p6| + |p3 - p5|) / (2 × |p1 - p4|)
 
 检测方式的切换和“开始新的计数”操作也会重置眨眼状态机。
 
+## Live2D 虚拟形象
+
+Live2D 驱动链路分为三层：
+
+1. `FaceLandmarker` 输出 478 个归一化面部关键点。
+2. `Kalidokit.Face.solve()` 计算头部旋转、眼睛开合、瞳孔、嘴型和眉毛数值。
+3. `pixi-live2d-display` 在 `beforeModelUpdate` 阶段将平滑后的参数写入 Cubism Core 模型。
+
+当前会写入以下常用参数；模型缺少某个参数时会自动跳过：
+
+```text
+ParamAngleX / Y / Z
+ParamBodyAngleX / Y / Z
+ParamEyeLOpen / ParamEyeROpen
+ParamEyeBallX / ParamEyeBallY
+ParamMouthOpenY / ParamMouthForm
+ParamBrowLY / ParamBrowRY
+```
+
+输入关键点会先复制一份再交给 Kalidokit，避免解算时对原始 FaceMesh 数据做单位转换。头部、眼睛和嘴型参数通过逐帧插值降低抖动，模型自带的呼吸、物理和待机动作仍然保留。
+
+页面默认加载 `pixi-live2d-display` 测试资源中的 Haru Cubism 4 模型。部署自己的模型时，设置模型设置文件 URL：
+
+```bash
+VITE_LIVE2D_MODEL_URL="https://example.com/your-model/model.model3.json" pnpm dev
+```
+
+也可以在项目根目录创建 `.env.local`：
+
+```dotenv
+VITE_LIVE2D_MODEL_URL=https://example.com/your-model/model.model3.json
+```
+
+模型中的所有相对资源必须能通过浏览器访问，并且服务器需要允许 CORS。请确保你拥有所用 Live2D 模型的授权。Cubism 4 Core 通过 `index.html` 中的官方脚本加载。
+
 ## 模型与性能配置
 
 相关地址定义在 `src/hooks/useFaceMesh.ts`：
@@ -212,10 +252,19 @@ MediaPipe 的 `eyeBlinkLeft` 和 `eyeBlinkRight` 对应被拍摄者自己的左�
 - 使用支持 GPU delegate 的最新版 Chrome 或 Edge
 - 优先使用原生前置摄像头，而不是虚拟摄像头或远程视频流
 
+### Live2D 模型加载失败
+
+- 确认 `.model3.json`、`.moc3`、贴图和其他资源配置文件均可访问
+- 检查模型的相对路径和远程服务器的 CORS 设置
+- 确认模型使用 Cubism 4，并且 `live2dcubismcore.min.js` 已成功加载
+- 当前实现默认使用标准 Cubism 参数名；自定义模型需要在 `Live2DPanel.tsx` 中调整参数映射
+
 ## 使用的技术
 
 - React 19 + React Compiler
 - Vite 8 + TypeScript
 - MUI 9 + Emotion
 - MediaPipe Tasks Vision 1.2.3
+- Kalidokit 1.1.5
+- PixiJS 6 + pixi-live2d-display 0.4
 - RequestAnimationFrame 视频检测循环

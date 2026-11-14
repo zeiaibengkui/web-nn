@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { Box, Container, Divider, Stack, Typography } from '@mui/material'
 import type { FaceLandmarkerResult } from '@mediapipe/tasks-vision'
+import { Face } from 'kalidokit'
 import { AppHeader } from './components/AppHeader'
 import { CameraPanel } from './components/CameraPanel'
 import { DetectionSettings } from './components/DetectionSettings'
 import { EyeSignals } from './components/EyeSignals'
+import { Live2DPanel } from './components/Live2DPanel'
 import { useFaceMesh } from './hooks/useFaceMesh'
 import { getEyeReadout } from './lib/eyeMetrics'
 import { formatElapsed, formatLastBlink } from './lib/format'
+import {
+  mapFaceToLive2D,
+  type Live2DDrivers,
+} from './lib/live2dMapping'
 import {
   EMPTY_EYE_READOUT,
   type CameraStatus,
@@ -37,6 +43,7 @@ function App({ mode, onToggleColorMode }: AppProps) {
   const isBlinkingRef = useRef(false)
   const blinkStartedAtRef = useRef<number | null>(null)
   const lastUiUpdateRef = useRef(0)
+  const live2dDriversRef = useRef<Live2DDrivers | null>(null)
 
   const [cameraStatus, setCameraStatus] = useState<CameraStatus>('idle')
   const [cameraError, setCameraError] = useState<string | null>(null)
@@ -54,6 +61,26 @@ function App({ mode, onToggleColorMode }: AppProps) {
   const handleResults = (results: FaceLandmarkerResult) => {
     const now = performance.now()
     const nextReadout = getEyeReadout(results, method, threshold)
+    const landmarks = results.faceLandmarks[0]
+
+    if (!landmarks) {
+      live2dDriversRef.current = null
+    } else {
+      try {
+        const solverInput = landmarks.map(({ x, y, z }) => ({ x, y, z }))
+        const riggedFace = Face.solve(solverInput, {
+          runtime: 'mediapipe',
+          video: videoRef.current,
+          smoothBlink: true,
+          blinkSettings: [0.35, 0.5],
+        })
+        live2dDriversRef.current = riggedFace
+          ? mapFaceToLive2D(riggedFace)
+          : null
+      } catch {
+        live2dDriversRef.current = null
+      }
+    }
 
     if (!nextReadout.hasFace) {
       isBlinkingRef.current = false
@@ -174,6 +201,7 @@ function App({ mode, onToggleColorMode }: AppProps) {
           setCameraStatus('error')
           setCameraError('摄像头连接已断开，请重新开启。')
           setReadout(EMPTY_EYE_READOUT)
+          live2dDriversRef.current = null
         },
         { once: true },
       )
@@ -183,6 +211,7 @@ function App({ mode, onToggleColorMode }: AppProps) {
       setElapsedSeconds(0)
       setStartedAt(Date.now())
       setReadout(EMPTY_EYE_READOUT)
+      live2dDriversRef.current = null
       lastUiUpdateRef.current = 0
       setCameraStatus('active')
     } catch (error) {
@@ -198,6 +227,7 @@ function App({ mode, onToggleColorMode }: AppProps) {
       setCameraStatus('error')
       setCameraError(cameraFailure)
       setReadout(EMPTY_EYE_READOUT)
+      live2dDriversRef.current = null
     }
   }
 
@@ -215,6 +245,7 @@ function App({ mode, onToggleColorMode }: AppProps) {
     setCameraStatus('idle')
     setCameraError(null)
     setReadout(EMPTY_EYE_READOUT)
+    live2dDriversRef.current = null
     setStartedAt(null)
     setElapsedSeconds(0)
   }
@@ -281,21 +312,29 @@ function App({ mode, onToggleColorMode }: AppProps) {
               gap: { xs: 2.5, sm: 3 },
             }}
           >
-            <CameraPanel
-              videoRef={videoRef}
-              canvasRef={canvasRef}
-              cameraStatus={cameraStatus}
-              modelStatus={modelStatus}
-              modelError={modelError}
-              cameraError={cameraError}
-              hasFace={readout.hasFace}
-              fps={fps}
-              showMesh={showMesh}
-              onToggleMesh={() => setShowMesh((value) => !value)}
-              onStart={() => void startCamera()}
-              onStop={stopCamera}
-              onReset={resetSession}
-            />
+            <Stack spacing={{ xs: 2.5, sm: 3 }}>
+              <CameraPanel
+                videoRef={videoRef}
+                canvasRef={canvasRef}
+                cameraStatus={cameraStatus}
+                modelStatus={modelStatus}
+                modelError={modelError}
+                cameraError={cameraError}
+                hasFace={readout.hasFace}
+                fps={fps}
+                showMesh={showMesh}
+                onToggleMesh={() => setShowMesh((value) => !value)}
+                onStart={() => void startCamera()}
+                onStop={stopCamera}
+                onReset={resetSession}
+              />
+              <Live2DPanel
+                cameraStatus={cameraStatus}
+                modelReady={modelStatus === 'ready'}
+                faceDetected={readout.hasFace}
+                driversRef={live2dDriversRef}
+              />
+            </Stack>
 
             <Box
               sx={{
