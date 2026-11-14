@@ -13,7 +13,7 @@ import {
   FaceRetouchingNaturalRounded,
   ViewInArRounded,
 } from '@mui/icons-material'
-import { LIVE2D_MODEL_URL } from '../config/live2d'
+import { getLive2DModelUrl } from '../config/live2d'
 import {
   NEUTRAL_DRIVERS,
   type Live2DDrivers,
@@ -50,6 +50,7 @@ export function Live2DPanel({
   embedded = false,
 }: Live2DPanelProps) {
   const hostRef = useRef<HTMLDivElement>(null)
+  const [modelUrl] = useState(getLive2DModelUrl)
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading')
   const [loadError, setLoadError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -87,7 +88,7 @@ export function Live2DPanel({
         })
         host.replaceChildren(app.view as HTMLCanvasElement)
 
-        const loadedModel = await Live2DModel.from(LIVE2D_MODEL_URL, {
+        const loadedModel = await Live2DModel.from(modelUrl, {
           autoInteract: false,
           autoUpdate: true,
         })
@@ -213,7 +214,7 @@ export function Live2DPanel({
       app = null
       host.replaceChildren()
     }
-  }, [attempt, driversRef, embedded])
+  }, [attempt, driversRef, embedded, modelUrl])
 
   const isDriving =
     loadStatus === 'ready' &&

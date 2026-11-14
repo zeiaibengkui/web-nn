@@ -210,6 +210,14 @@ VITE_LIVE2D_MODEL_URL="https://example.com/your-model/model.model3.json" pnpm de
 VITE_LIVE2D_MODEL_URL=https://example.com/your-model/model.model3.json
 ```
 
+也可以在运行时通过 `model_url` 查询参数切换模型，无需重新构建：
+
+```text
+https://zeiaibengkui.github.io/web-nn/?model_url=https%3A%2F%2Fexample.com%2Fyour-model%2Fmodel.model3.json
+```
+
+`model_url` 支持外部 HTTP(S) 地址和站内相对路径，例如 `/l2d-models/models/Hiyori/Hiyori.model3.json`。建议先对含特殊字符的 URL 使用 `encodeURIComponent`。非 HTTP(S) 地址会自动回退到默认模型。
+
 模型中的所有相对资源必须能通过浏览器访问，并且服务器需要允许 CORS。请确保你拥有所用 Live2D 模型的授权。Cubism 4 Core 通过 `index.html` 中的官方脚本加载。
 
 相关参考项目：[live2d-face-release](https://zkcpku.github.io/live2d-face-release/)
